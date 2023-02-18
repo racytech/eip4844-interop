@@ -1,5 +1,5 @@
-SERVICES=geth-1\
-	 geth-2\
+SERVICES=erigon-1\
+	 erigon-2\
 	 besu-1 \
 	 prysm-beacon-node\
 	 prysm-beacon-node-follower\
@@ -18,6 +18,16 @@ devnet-build:
 # First build then setup so we don't start after the genesis_delay
 devnet-up: devnet-build devnet-setup
 	docker compose --project-name eip4844-interop up -d ${SERVICES}
+
+devnet-down:
+	docker compose --project-name eip4844-interop down -v
+
+devnet-restart: devnet-down devnet-up
+
+devnet-clean:
+	docker compose --project-name eip4844-interop down --rmi local --volumes
+	docker image ls 'eip4844-interop*' --format='{{.Repository}}' | xargs -r docker rmi
+	docker volume ls --filter name=eip4844-interop --format='{{.Name}}' | xargs -r docker volume rm
 
 lighthouse-up: devnet-build devnet-setup
 	docker compose --project-name eip4844-interop up -d --build\
@@ -45,17 +55,6 @@ besu-prysm-up: devnet-build devnet-setup
 		prysm-beacon-node-besu-el \
 		prysm-beacon-node-follower \
 		prysm-validator-node-besu-el
-
-
-devnet-down:
-	docker compose --project-name eip4844-interop down -v
-
-devnet-restart: devnet-down devnet-up
-
-devnet-clean:
-	docker compose --project-name eip4844-interop down --rmi local --volumes
-	docker image ls 'eip4844-interop*' --format='{{.Repository}}' | xargs -r docker rmi
-	docker volume ls --filter name=eip4844-interop --format='{{.Name}}' | xargs -r docker volume rm
 
 blobtx-test: devnet-setup
 	go run ./tests/blobtx $(el)

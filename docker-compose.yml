@@ -7,14 +7,35 @@ volumes:
   config_data:
   teku_data:
 
-x-geth: &geth
+
+x-erigon:
+  &erigon
+  image: racytech/erigon:eip_4844
+  depends_on:
+    genesis-generator:
+      condition: service_completed_successfully
+  entrypoint: erigon.sh
+  healthcheck:
+    test: [ "CMD", "curl", "--fail", "localhost:8545" ]
+    interval: 2s
+    timeout: 2s
+    retries: 40
+    start_period: 1s
+  volumes:
+    - 'config_data:/config_data'
+    - type: bind
+      source: ./erigon/erigon.sh
+      target: /usr/local/bin/erigon.sh
+
+x-geth:
+  &geth
   image: inphi/geth:eip4844-devnet4
   depends_on:
     genesis-generator:
       condition: service_completed_successfully
   entrypoint: geth.sh
   healthcheck:
-    test: ["CMD", "curl", "--fail", "localhost:8545"]
+    test: [ "CMD", "curl", "--fail", "localhost:8545" ]
     interval: 2s
     timeout: 2s
     retries: 40
@@ -25,14 +46,15 @@ x-geth: &geth
       source: ./geth/geth.sh
       target: /usr/local/bin/geth.sh
 
-x-nethermind: &nethermind
+x-nethermind:
+  &nethermind
   image: nethermindeth/nethermind:eip-4844-v4-workaround
   depends_on:
     genesis-generator:
       condition: service_completed_successfully
   entrypoint: 'nethermind.sh'
   healthcheck:
-    test: ["CMD", "curl", "--fail", "localhost:8545"]
+    test: [ "CMD", "curl", "--fail", "localhost:8545" ]
     interval: 2s
     timeout: 2s
     retries: 40
@@ -43,7 +65,8 @@ x-nethermind: &nethermind
       source: ./nethermind/nethermind.sh
       target: /usr/local/bin/nethermind.sh
 
-x-besu: &besu
+x-besu:
+  &besu
   depends_on:
     genesis-generator:
       condition: service_completed_successfully
@@ -52,7 +75,7 @@ x-besu: &besu
     context: .
     dockerfile: besu/Dockerfile.besu
   healthcheck:
-    test: ["CMD", "curl", "--fail", "localhost:8545"]
+    test: [ "CMD", "curl", "--fail", "localhost:8545" ]
     interval: 2s
     timeout: 2s
     retries: 40
@@ -64,16 +87,18 @@ x-besu: &besu
       target: /usr/local/bin/besu.sh
     - type: bind
       source: ./besu/log4j2.xml
-      target: /opt/besu/log4j2.xml      
+      target: /opt/besu/log4j2.xml
 
-x-prysm-beacon-node-env: &prysm-bn-env
+x-prysm-beacon-node-env:
+  &prysm-bn-env
   TRACING_ENDPOINT: http://jaeger-tracing:14268/api/traces
   PROCESS_NAME: beacon-node
   VERBOSITY: debug
   P2P_TCP_PORT: 13000
   MIN_SYNC_PEERS: 0
 
-x-prysm-beacon-node: &prysm-bn
+x-prysm-beacon-node:
+  &prysm-bn
   depends_on:
     bootnode:
       condition: service_started
@@ -85,7 +110,13 @@ x-prysm-beacon-node: &prysm-bn
     context: ./prysm
     dockerfile: Dockerfile.prysm
   healthcheck:
-    test: ["CMD", "curl", "--fail", "localhost:3500/eth/v1/node/health"]
+    test:
+      [
+        "CMD",
+        "curl",
+        "--fail",
+        "localhost:3500/eth/v1/node/health"
+      ]
     interval: 2s
     timeout: 2s
     retries: 40
@@ -97,9 +128,17 @@ x-prysm-beacon-node: &prysm-bn
       source: ./prysm/run_beacon_node.sh
       target: /usr/local/bin/run_beacon_node.sh
 
-x-lighthouse-beacon-node: &lighthouse-bn
+x-lighthouse-beacon-node:
+  &lighthouse-bn
   image: inphi/lighthouse:eip4844
-  entrypoint: ["run_beacon_node.sh", "-d", "debug", "/data/node_1", "http://geth-1:8551"]
+  entrypoint:
+    [
+      "run_beacon_node.sh",
+      "-d",
+      "debug",
+      "/data/node_1",
+      "http://geth-1:8551"
+    ]
   environment:
     - P2P_PORT=9000
   ports:
@@ -119,7 +158,6 @@ x-lighthouse-beacon-node: &lighthouse-bn
       source: ./shared/jwtsecret
       target: /config/jwtsecret
 
-
 services:
   genesis-generator:
     image: fab10/ethereum-genesis-generator:eip4844
@@ -133,6 +171,18 @@ services:
       - lodestar_data:/lodestar_data
       - teku_data:/teku_data
       - config_data:/data
+
+  erigon-1:
+    <<: *erigon
+    ports:
+      - '8545:8545'
+      - '8551:8551'
+
+  erigon-2:
+    <<: *erigon
+    ports:
+      - '8546:8545'
+      - '8552:8551'
 
   geth-1:
     <<: *geth
@@ -175,15 +225,7 @@ services:
       genesis-generator:
         condition: service_completed_successfully
     command: >
-      --dataDir=/db
-      --gethGenesis=/config_data/custom_config_data/genesis.json
-      --rpc
-      --rpcAddr=0.0.0.0
-      --rpcCors="*"
-      --rpcEngine
-      --rpcEngineAddr=0.0.0.0
-      --logLevel=debug
-      --jwt-secret=/config_data/el/jwtsecret
+      --dataDir=/db --gethGenesis=/config_data/custom_config_data/genesis.json --rpc --rpcAddr=0.0.0.0 --rpcCors="*" --rpcEngine --rpcEngineAddr=0.0.0.0 --logLevel=debug --jwt-secret=/config_data/el/jwtsecret
     ports:
       - '11545:8545'
     volumes:
@@ -286,21 +328,7 @@ services:
       context: ./prysm
       dockerfile: Dockerfile.prysm
     command: >
-      validator
-      --accept-terms-of-use
-      --beacon-rpc-provider prysm-beacon-node:4000
-      --rpc
-      --grpc-gateway-host 0.0.0.0
-      --grpc-gateway-port 7500
-      --force-clear-db
-      --chain-config-file=/config_data/custom_config_data/config.yaml
-      --suggested-fee-recipient 0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b
-      --wallet-password-file=/prysm_data/wallet_pass.txt
-      --wallet-dir=/prysm_data/wallet
-      --enable-tracing
-      --tracing-endpoint http://jaeger-tracing:14268/api/traces
-      --tracing-process-name validator-node
-      --verbosity trace
+      validator --accept-terms-of-use --beacon-rpc-provider prysm-beacon-node:4000 --rpc --grpc-gateway-host 0.0.0.0 --grpc-gateway-port 7500 --force-clear-db --chain-config-file=/config_data/custom_config_data/config.yaml --suggested-fee-recipient 0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b --wallet-password-file=/prysm_data/wallet_pass.txt --wallet-dir=/prysm_data/wallet --enable-tracing --tracing-endpoint http://jaeger-tracing:14268/api/traces --tracing-process-name validator-node --verbosity trace
     ports:
       - '7500:7500'
     volumes:
@@ -319,21 +347,7 @@ services:
       context: ./prysm
       dockerfile: Dockerfile.prysm
     command: >
-      validator
-      --accept-terms-of-use
-      --beacon-rpc-provider prysm-beacon-node-besu-el:4000
-      --rpc
-      --grpc-gateway-host 0.0.0.0
-      --grpc-gateway-port 7500
-      --force-clear-db
-      --chain-config-file=/config_data/custom_config_data/config.yaml
-      --suggested-fee-recipient 0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b
-      --wallet-password-file=/prysm_data/wallet_pass.txt
-      --wallet-dir=/prysm_data/wallet
-      --enable-tracing
-      --tracing-endpoint http://jaeger-tracing:14268/api/traces
-      --tracing-process-name validator-node
-      --verbosity trace
+      validator --accept-terms-of-use --beacon-rpc-provider prysm-beacon-node-besu-el:4000 --rpc --grpc-gateway-host 0.0.0.0 --grpc-gateway-port 7500 --force-clear-db --chain-config-file=/config_data/custom_config_data/config.yaml --suggested-fee-recipient 0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b --wallet-password-file=/prysm_data/wallet_pass.txt --wallet-dir=/prysm_data/wallet --enable-tracing --tracing-endpoint http://jaeger-tracing:14268/api/traces --tracing-process-name validator-node --verbosity trace
     ports:
       - '7500:7500'
     volumes:
@@ -351,7 +365,7 @@ services:
     image: g11tech/lodestar:4844-jan23
     environment:
       EXECUTION_NODE_URL: http://geth-3:8551
-    entrypoint: ['run_beacon_node.sh']
+    entrypoint: [ 'run_beacon_node.sh' ]
     ports:
       - '3600:3500'
       - '14000:13000'
@@ -366,14 +380,7 @@ services:
       - lodestar-beacon-node
     image: g11tech/lodestar:4844-jan23
     command: >
-      validator
-      --paramsFile /config_data/custom_config_data/config.yaml
-      --force
-      --dataDir /chaindata/validator
-      --keystoresDir /lodestar_data/keystores
-      --secretsDir /lodestar_data/secrets
-      --server http://lodestar-beacon-node:3500
-      --suggestedFeeRecipient 0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b
+      validator --paramsFile /config_data/custom_config_data/config.yaml --force --dataDir /chaindata/validator --keystoresDir /lodestar_data/keystores --secretsDir /lodestar_data/secrets --server http://lodestar-beacon-node:3500 --suggestedFeeRecipient 0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b
     volumes:
       - 'config_data:/config_data'
       - 'lodestar_data:/lodestar_data'
@@ -387,7 +394,14 @@ services:
         condition: service_started
       genesis-generator:
         condition: service_completed_successfully
-    entrypoint: ["run_beacon_node.sh", "-d", "debug", "/data/node_1", "http://geth-1:8551"]
+    entrypoint:
+      [
+        "run_beacon_node.sh",
+        "-d",
+        "debug",
+        "/data/node_1",
+        "http://geth-1:8551"
+      ]
     environment:
       - P2P_PORT=9000
     ports:
@@ -404,7 +418,14 @@ services:
         condition: service_started
       genesis-generator:
         condition: service_completed_successfully
-    entrypoint: ["run_beacon_node.sh", "-d", "debug", "/data/node_2", "http://geth-2:8551"]
+    entrypoint:
+      [
+        "run_beacon_node.sh",
+        "-d",
+        "debug",
+        "/data/node_2",
+        "http://geth-2:8551"
+      ]
     environment:
       - P2P_PORT=9001
     ports:
@@ -423,15 +444,7 @@ services:
       context: ./lighthouse
       dockerfile: Dockerfile.lighthouse
     command: >
-      lighthouse
-      --debug-level info
-      vc
-      --validators-dir /data/validators
-      --secrets-dir /data/secrets
-      --testnet-dir /config_data/custom_config_data
-      --init-slashing-protection
-      --beacon-nodes http://lighthouse-beacon-node:8000
-      --suggested-fee-recipient 0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990
+      lighthouse --debug-level info vc --validators-dir /data/validators --secrets-dir /data/secrets --testnet-dir /config_data/custom_config_data --init-slashing-protection --beacon-nodes http://lighthouse-beacon-node:8000 --suggested-fee-recipient 0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990
     volumes:
       - lighthouse_data:/data
       - config_data:/config_data

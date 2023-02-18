@@ -12,8 +12,8 @@
 	branch = dapplion/eip-4844
 [submodule "erigon/erigon"]
 	path = erigon/erigon
-	url = https://github.com/roberto-bayardo/erigon
-	branch = eip-4844
+	url = https://github.com/racytech/erigon
+	branch = eip_4844
 [submodule "lighthouse/lighthouse"]
 	path = lighthouse/lighthouse
 	url = https://github.com/sigp/lighthouse

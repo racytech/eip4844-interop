@@ -25,8 +25,8 @@ function get_blob(data) {
     let blob = Buffer.alloc(BLOB_SIZE, 'binary')
     for (let i = 0; i < FIELD_ELEMENTS_PER_BLOB; i++) {
         let chunk = Buffer.alloc(32, 'binary')
-        chunk.fill(data.subarray(i*31, (i+1)*31), 0, 31)
-        blob.fill(chunk, i*32, (i+1)*32)
+        chunk.fill(data.subarray(i * 31, (i + 1) * 31), 0, 31)
+        blob.fill(chunk, i * 32, (i + 1) * 32)
     }
 
     return blob
@@ -49,7 +49,7 @@ function get_blobs(data) {
 
     let blobs = []
     for (let i = 0; i < blobs_len; i++) {
-        let chunk = pdata.subarray(i*USEFUL_BYTES_PER_BLOB, (i+1)*USEFUL_BYTES_PER_BLOB)
+        let chunk = pdata.subarray(i * USEFUL_BYTES_PER_BLOB, (i + 1) * USEFUL_BYTES_PER_BLOB)
         let blob = get_blob(chunk)
         blobs.push(blob)
     }
@@ -58,9 +58,9 @@ function get_blobs(data) {
 }
 
 function sleep(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 }
 
 async function estimateGas(tx) {
@@ -131,7 +131,7 @@ async function run(data, expected_kzgs) {
                 await sleep(1000)
             }
         }
-    } catch(error) {
+    } catch (error) {
         console.log(`Error retrieving blocks from ${error.config.url}: ${error.response.data}`)
         return false
     }

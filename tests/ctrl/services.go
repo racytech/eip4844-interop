@@ -37,6 +37,8 @@ func GetBeaconNodeClient(ctx context.Context) (*beacon.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to create beacon API client", err)
 	}
+
+	log.Println("Beacon client: Success")
 	return client, nil
 }
 
@@ -61,6 +63,8 @@ func GetExecutionClient(ctx context.Context) (*ethclient.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: Failed to connect to the Ethereum client", err)
 	}
+
+	log.Println("Execution client: Success")
 	return client, nil
 }
 

@@ -80,6 +80,8 @@ func main() {
 	downloadedData = util.DownloadBlobs(ctx, slot, 1, followerMultiaddr)
 	downloadedBlobs = shared.EncodeBlobs(downloadedData)
 	util.AssertBlobsEquals(blobs, downloadedBlobs)
+
+	log.Printf("PASS")
 }
 
 func UploadBlobs(ctx context.Context, client *ethclient.Client, chainID *big.Int, blobs types.Blobs) {
