@@ -9,6 +9,7 @@ import (
 
 	"github.com/Inphi/eip4844-interop/shared"
 	"github.com/ethereum/go-ethereum/ethclient"
+
 	"github.com/prysmaticlabs/prysm/v3/api/client/beacon"
 )
 

@@ -18,7 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	ma "github.com/multiformats/go-multiaddr"
 	ssz "github.com/prysmaticlabs/fastssz"
@@ -131,7 +130,7 @@ func DownloadBlobs(ctx context.Context, startSlot consensustypes.Slot, count uin
 	defer func() {
 		_ = h.Close()
 	}()
-	h.RemoveStreamHandler(identify.IDDelta)
+	// h.RemoveStreamHandler(identify.IDDelta)
 	// setup enough handlers so lighthouse thinks it's dealing with a beacon peer
 	setHandler(h, p2p.RPCPingTopicV1, pingHandler)
 	setHandler(h, p2p.RPCGoodByeTopicV1, pingHandler)
