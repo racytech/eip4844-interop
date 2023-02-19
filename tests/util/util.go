@@ -147,7 +147,7 @@ func AssertBlobsEquals(a, b types.Blobs) {
 	if len(a) != len(b) {
 		log.Fatalf("data length mismatch (%d != %d)", len(a), len(b))
 	}
-	for i, _ := range a {
+	for i := range a {
 		for j := 0; j < params.FieldElementsPerBlob; j++ {
 			if !bytes.Equal(a[i][j][:], b[i][j][:]) {
 				log.Fatal("blobs data mismatch")

@@ -12,6 +12,8 @@ import (
 	"github.com/prysmaticlabs/prysm/v3/api/client/beacon"
 )
 
+const IsErigon = false
+
 type Service interface {
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
@@ -51,14 +53,27 @@ func GetBeaconNodeFollowerClient(ctx context.Context) (*beacon.Client, error) {
 }
 
 func NewGethNode() Service {
+	if IsErigon {
+		return newDockerService("erigon-1", shared.GethRPC)
+	}
 	return newDockerService("geth-1", shared.GethRPC)
 }
 
 func NewGethNode2() Service {
+	if IsErigon {
+		return newDockerService("erigon-1", shared.GethRPC)
+	}
 	return newDockerService("geth-2", shared.GethRPC)
 }
 
 func GetExecutionClient(ctx context.Context) (*ethclient.Client, error) {
+
+	// if IsErigon {
+
+	// 	client, err :=
+
+	// }
+
 	client, err := ethclient.DialContext(ctx, shared.GethRPC)
 	if err != nil {
 		return nil, fmt.Errorf("%w: Failed to connect to the Ethereum client", err)
